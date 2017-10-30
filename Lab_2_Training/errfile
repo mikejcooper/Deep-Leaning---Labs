@@ -1,0 +1,20 @@
+Lmod has detected the following error: The following module(s) are unknown:
+"python"
+
+Please check the spelling or version number. Also try "module spider ..."
+
+
+
+
+Lmod has detected the following error: The following module(s) are unknown:
+"tensorflow/1.2"
+
+Please check the spelling or version number. Also try "module spider ..."
+
+
+
+
+Traceback (most recent call last):
+  File "cifar_hyperparam.py", line 20, in <module>
+    import tensorflow as tf
+ImportError: No module named tensorflow
