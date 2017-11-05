@@ -1,0 +1,9 @@
+
+The following have been reloaded with a version change:
+  1) libs/cudnn/8.0-cuda-8.0 => libs/cudnn/5.1-cuda-8.0
+
+  File "cifar_hyperparam.py", line 99
+    W_conv1 = weight_variable([5, 5, FLAGS.img_channels, 32])
+    ^
+IndentationError: unexpected indent
+srun: error: gpu01: task 0: Exited with exit code 1
