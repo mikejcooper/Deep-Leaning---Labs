@@ -16,6 +16,7 @@ from __future__ import print_function
 
 import sys
 import os
+import numpy as np
 
 import tensorflow as tf
 
@@ -47,6 +48,8 @@ checkpoint_path = os.path.join(run_log_dir, 'model.ckpt')
 # limit the process memory to a third of the total gpu memory
 gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.33)
 
+TRAINING_FLAG = True
+
 
 def deepnn(x_image, img_shape=(32, 32, 3), class_count=10):
     """deepnn builds the graph for a deep net for classifying CIFAR10 images.
@@ -61,6 +64,9 @@ def deepnn(x_image, img_shape=(32, 32, 3), class_count=10):
       classifying the object images into one of 10 classes
       (airplane, automobile, bird, cat, deer, dog, frog, horse, ship, truck)
     """
+    if(TRAINING_FLAG):
+        x_image = tf.map_fn(lambda img: tf.image.random_flip_left_right(img), x_image)
+
 
     # First convolutional layer - maps one RGB image to 32 feature maps.
     conv1 = tf.layers.conv2d(
@@ -104,10 +110,13 @@ def deepnn(x_image, img_shape=(32, 32, 3), class_count=10):
 def augmentData(batchImgs):
     augmnented_batchImgs = []
     for i in range(FLAGS.batch_size):
+        newShape = np.reshape(batchImgs[i], [32,32, 3])
+        new1 = tf.image.random_flip_left_right(newShape, 0)
+        new2 = tf.reshape(new1, [-1]).eval()
         augmnented_batchImgs.append(
-            tf.expand_dims(tf.image.random_flip_left_right(image[i, :, :, :]), 0)
+            new2
         )
-    return tf.concat(0, augmnented_batchImgs)
+    return augmnented_batchImgs
 
 
 def main(_):
@@ -119,7 +128,7 @@ def main(_):
     with tf.name_scope('inputs'):
         x = tf.placeholder(tf.float32, [None, cifar.IMG_WIDTH * cifar.IMG_HEIGHT * cifar.IMG_CHANNELS])
         x_image = tf.reshape(x, [-1, cifar.IMG_WIDTH, cifar.IMG_HEIGHT, cifar.IMG_CHANNELS])
-        y_ = tf.placeholder(tf.float32, [None, cifar.CLASS_COUNT])
+        y_ = tf.placeholder(tf.float32, [None, 10])
 
     with tf.name_scope('model'):
         y_conv = deepnn(x_image)
@@ -162,20 +171,20 @@ def main(_):
             (trainImages, trainLabels) = cifar.getTrainBatch()
             (testImages, testLabels) = cifar.getTestBatch()
 
-            # trainImages = tf.map_fn(lambda img: tf.image.random_flip_left_right(img), trainImages)
-            # trainImages = augmentData(trainImages)
-
 
             _, train_summary_str = sess.run([train_step, train_summary],
                                       feed_dict={x: trainImages, y_: trainLabels})
 
             # Validation: Monitoring accuracy using validation set
             if (step + 1) % FLAGS.log_frequency == 0:
+                TRAINING_FLAG = False
                 validation_accuracy, validation_summary_str = sess.run([accuracy, validation_summary],
                                                                        feed_dict={x: testImages, y_: testLabels})
                 print('step {}, accuracy on validation set : {}'.format(step, validation_accuracy))
                 train_writer.add_summary(train_summary_str, step)
                 validation_writer.add_summary(validation_summary_str, step)
+                TRAINING_FLAG = True
+
 
 
             # Save the model checkpoint periodically.
@@ -188,6 +197,7 @@ def main(_):
 
         # Resetting the internal batch indexes
         cifar.reset()
+        TRAINING_FLAG = False
         evaluated_images = 0
         test_accuracy = 0
         batch_count = 0
