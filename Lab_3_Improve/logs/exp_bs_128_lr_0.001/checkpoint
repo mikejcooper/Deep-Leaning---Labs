@@ -1,2 +1,0 @@
-model_checkpoint_path: "/mnt/storage/home/mc14641/Deep-Leaning---Labs/Lab_3_Improve/logs/exp_bs_128_lr_0.001/model.ckpt-9999"
-all_model_checkpoint_paths: "/mnt/storage/home/mc14641/Deep-Leaning---Labs/Lab_3_Improve/logs/exp_bs_128_lr_0.001/model.ckpt-9999"
