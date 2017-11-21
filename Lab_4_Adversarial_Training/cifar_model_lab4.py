@@ -69,7 +69,7 @@ def deepnn(x_image, class_count=10):
       (airplane, automobile, bird, cat, deer, dog, frog, horse, ship, truck)
     """
 
-    x = fgsm.generate(x, eps=0.05, clip_min=0.0, clip_max=1.0)
+    # x = fgsm.generate(x, eps=0.05, clip_min=0.0, clip_max=1.0)
 
     # First convolutional layer - maps one RGB image to 32 feature maps.
     conv1 = tf.layers.conv2d(
