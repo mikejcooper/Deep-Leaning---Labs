@@ -198,9 +198,9 @@ def main(_):
             _, adversarial_train_summary_str = sess.run([train_step, adversarial_train_summary],
                                             feed_dict={x: _train_images_adv, y_: train_labels})
 
-            # # Train with normal
-            # _, train_summary_str = sess.run([train_step, train_summary],
-            #                                 feed_dict={x: train_images, y_: train_labels})
+            # Train with normal
+            _, train_summary_str = sess.run([train_step, train_summary],
+                                            feed_dict={x: train_images, y_: train_labels})
 
 
             # Validation: Monitoring accuracy using validation set
