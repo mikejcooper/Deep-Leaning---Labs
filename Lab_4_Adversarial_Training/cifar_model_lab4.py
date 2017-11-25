@@ -151,6 +151,8 @@ def main(_):
     img_summary = tf.summary.image('Input Images', x_image)
     test_img_summary = tf.summary.image('Test Images', x_image)
 
+    adversarial_img_summary = tf.summary.image('Advrs Images', x_image)
+
     train_summary = tf.summary.merge([loss_summary, accuracy_summary, learning_rate_summary, img_summary])
     validation_summary = tf.summary.merge([loss_summary, accuracy_summary])
 
@@ -158,7 +160,7 @@ def main(_):
     with tf.Session(config=tf.ConfigProto(gpu_options=gpu_options)) as sess:
         sess.run(tf.global_variables_initializer())
 
-        adversarial_train_summary = tf.summary.merge([loss_summary, accuracy_summary, learning_rate_summary, img_summary])
+        adversarial_train_summary = tf.summary.merge([loss_summary, accuracy_summary, learning_rate_summary, adversarial_img_summary])
         adversarial_validation_summary = tf.summary.merge([loss_summary, accuracy_summary, test_img_summary])
 
         train_writer = tf.summary.FileWriter(run_log_dir + "_train", sess.graph)
@@ -250,7 +252,8 @@ def main(_):
 
         train_writer.close()
         validation_writer.close()
-        adversarial_writer.close()
+        adversarial_train_writer.close()
+        adversarial_validation_writer.close()
 
 
 if __name__ == '__main__':
