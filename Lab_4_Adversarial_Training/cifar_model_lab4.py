@@ -166,6 +166,14 @@ def main(_):
 
         sess.run(tf.global_variables_initializer())
 
+        x1 = tf.placeholder(tf.float32, shape=(None, cifar.IMG_WIDTH, cifar.IMG_HEIGHT, cifar.IMG_CHANNELS))
+
+        # Create adversarial examples
+        with tf.variable_scope('model', reuse=True):
+            fgsm = FastGradientMethod(model, sess=sess)
+            adv_x = fgsm.generate(x1, eps=fgsm_eps, clip_min=0.0, clip_max=1.0)
+
+
         # Training and validation
         for step in range(0, FLAGS.max_steps, 1):
             (train_images, train_labels) = cifar.getTrainBatch()
@@ -174,12 +182,8 @@ def main(_):
             _train_images = np.reshape(train_images, [-1, cifar.IMG_WIDTH, cifar.IMG_HEIGHT, cifar.IMG_CHANNELS])
             _test_images = np.reshape(test_images, [-1, cifar.IMG_WIDTH, cifar.IMG_HEIGHT, cifar.IMG_CHANNELS])
 
-            x1 = tf.placeholder(tf.float32, shape=(None, cifar.IMG_WIDTH, cifar.IMG_HEIGHT, cifar.IMG_CHANNELS))
-
             # Create adversarial examples
             with tf.variable_scope('model', reuse=True):
-                fgsm = FastGradientMethod(model, sess=sess)
-                adv_x = fgsm.generate(x1, eps=fgsm_eps, clip_min=0.0, clip_max=1.0)
                 # preds_adv = model.get_probs(adv_x)
                 _test_images_adv, = batch_eval(sess, [x1], [adv_x], [_test_images], args={'batch_size': 128})
                 # _train_images_adv, = batch_eval(sess, [x1], [adv_x], [_train_images], args={'batch_size': 128})
