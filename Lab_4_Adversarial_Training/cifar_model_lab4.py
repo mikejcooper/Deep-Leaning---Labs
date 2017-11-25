@@ -21,6 +21,9 @@ import numpy as np
 import tensorflow as tf
 from cleverhans.attacks import FastGradientMethod
 from cleverhans.model import CallableModelWrapper
+from cleverhans.utils_tf import model_eval, batch_eval
+
+
 
 here = os.path.dirname(__file__)
 sys.path.append(here)
@@ -44,6 +47,7 @@ tf.app.flags.DEFINE_integer('max-steps', 10000,
 tf.app.flags.DEFINE_integer('batch-size', 128, 'Number of examples per mini-batch. (default: %(default)d)')
 tf.app.flags.DEFINE_float('learning-rate', 1e-3, 'Number of examples to run. (default: %(default)d)')
 
+GENERATION_TYPE = 'fgsm'
 
 fgsm_eps = 0.05
 adversarial_training_enabled = False
@@ -69,8 +73,6 @@ def deepnn(x_image, class_count=10):
       (airplane, automobile, bird, cat, deer, dog, frog, horse, ship, truck)
     """
 
-    # x = fgsm.generate(x, eps=0.05, clip_min=0.0, clip_max=1.0)
-
     # First convolutional layer - maps one RGB image to 32 feature maps.
     conv1 = tf.layers.conv2d(
         inputs=x_image,
@@ -85,7 +87,7 @@ def deepnn(x_image, class_count=10):
         inputs=conv1_bn,
         pool_size=[2, 2],
         strides=2,
-        name='pool1'
+        name='pool1',
     )
 
     conv2 = tf.layers.conv2d(
@@ -115,16 +117,19 @@ def main(_):
     tf.reset_default_graph()
 
     cifar = cf.cifar10(batchSize=FLAGS.batch_size)
-    cifar.preprocess()  # necessary for adversarial attack to work well.
+    # cifar.preprocess()  # necessary for adversarial attack to work well.
     print("(min, max) = ({}, {})".format(np.min(cifar.trainData), np.max(cifar.trainData)))
 
     # Build the graph for the deep net
-    with tf.name_scope('inputs'):
+    with tf.variable_scope('inputs', reuse=tf.AUTO_REUSE):
         x = tf.placeholder(tf.float32, shape=[None, cifar.IMG_WIDTH * cifar.IMG_HEIGHT * cifar.IMG_CHANNELS])
         x_image = tf.reshape(x, [-1, cifar.IMG_WIDTH, cifar.IMG_HEIGHT, cifar.IMG_CHANNELS])
-        y_ = tf.placeholder(tf.float32, shape=[None, cifar.CLASS_COUNT])
+        # y_ = tf.placeholder(tf.float32, shape=[None, cifar.CLASS_COUNT])
+        y_ = tf.placeholder(tf.float32, shape=[None, 10])
 
-    with tf.variable_scope('model'):
+
+
+    with tf.variable_scope('model',reuse=tf.AUTO_REUSE):
         logits = deepnn(x_image)
         model = CallableModelWrapper(deepnn, 'logits')
 
@@ -152,8 +157,6 @@ def main(_):
     saver = tf.train.Saver(tf.global_variables(), max_to_keep=1)
     with tf.Session(config=tf.ConfigProto(gpu_options=gpu_options)) as sess:
         sess.run(tf.global_variables_initializer())
-        with tf.variable_scope('model', reuse=True):
-            fgsm = FastGradientMethod(model, sess=sess)
 
         adversarial_summary = tf.summary.merge([test_img_summary])
 
@@ -168,16 +171,48 @@ def main(_):
             (train_images, train_labels) = cifar.getTrainBatch()
             (test_images, test_labels) = cifar.getTestBatch()
 
+            _train_images = np.reshape(train_images, [-1, cifar.IMG_WIDTH, cifar.IMG_HEIGHT, cifar.IMG_CHANNELS])
+            _test_images = np.reshape(test_images, [-1, cifar.IMG_WIDTH, cifar.IMG_HEIGHT, cifar.IMG_CHANNELS])
+
+            x1 = tf.placeholder(tf.float32, shape=(None, cifar.IMG_WIDTH, cifar.IMG_HEIGHT, cifar.IMG_CHANNELS))
+
+            # Create adversarial examples
+            with tf.variable_scope('model', reuse=tf.AUTO_REUSE):
+                fgsm = FastGradientMethod(model, sess=sess)
+                adv_x = fgsm.generate(x1, eps=fgsm_eps, clip_min=0.0, clip_max=1.0)
+                # preds_adv = model.get_probs(adv_x)
+                _test_images_adv, = batch_eval(sess, [x1], [adv_x], [_test_images], args={'batch_size': 128})
+                _train_images_adv, = batch_eval(sess, [x1], [adv_x], [_train_images], args={'batch_size': 128})
+
+            _train_images_adv = np.reshape(_train_images_adv, [-1, cifar.IMG_WIDTH * cifar.IMG_HEIGHT * cifar.IMG_CHANNELS])
+            _test_images_adv = np.reshape(_test_images_adv, [-1, cifar.IMG_WIDTH * cifar.IMG_HEIGHT * cifar.IMG_CHANNELS])
+
+            # Train with normal
             _, train_summary_str = sess.run([train_step, train_summary],
-                                            feed_dict={x: train_images, y_: train_labels})
+                                            feed_dict={x: _train_images_adv, y_: train_labels})
+
+            # # Train with adversarial
+            # _, train_summary_str = sess.run([train_step, train_summary],
+            #                                 feed_dict={x: train_images, y_: train_labels})
+
 
             # Validation: Monitoring accuracy using validation set
             if step % FLAGS.log_frequency == 0:
                 train_writer.add_summary(train_summary_str, step)
+
+                # Test with adversarial
+                validation_adversarial_accuracy, validation_adversarial_summary_str = sess.run([accuracy, adversarial_summary],
+                                                                       feed_dict={x: _test_images_adv, y_: test_labels})
+
+                # Test with normal
                 validation_accuracy, validation_summary_str = sess.run([accuracy, validation_summary],
                                                                        feed_dict={x: test_images, y_: test_labels})
-                print('step {}, accuracy on validation set : {}'.format(step, validation_accuracy))
+
+                print('Normal:    step {}, accuracy on validation set : {}'.format(step, validation_accuracy))
+                print('Adversary: step {}, accuracy on validation set : {}'.format(step, validation_adversarial_accuracy))
+
                 validation_writer.add_summary(validation_summary_str, step)
+                adversarial_writer.add_summary(validation_adversarial_summary_str, step)
 
             # Save the model checkpoint periodically.
             if step % FLAGS.save_model_frequency == 0 or (step + 1) == FLAGS.max_steps:
