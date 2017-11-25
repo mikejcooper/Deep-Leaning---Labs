@@ -184,7 +184,7 @@ def main(_):
                 _test_images_adv, = batch_eval(sess, [x1], [adv_x], [_test_images], args={'batch_size': 128})
                 # _train_images_adv, = batch_eval(sess, [x1], [adv_x], [_train_images], args={'batch_size': 128})
 
-            _train_images_adv = np.reshape(_train_images_adv, [-1, cifar.IMG_WIDTH * cifar.IMG_HEIGHT * cifar.IMG_CHANNELS])
+            # _train_images_adv = np.reshape(_train_images_adv, [-1, cifar.IMG_WIDTH * cifar.IMG_HEIGHT * cifar.IMG_CHANNELS])
             _test_images_adv = np.reshape(_test_images_adv, [-1, cifar.IMG_WIDTH * cifar.IMG_HEIGHT * cifar.IMG_CHANNELS])
 
             # # Train with adversarial
