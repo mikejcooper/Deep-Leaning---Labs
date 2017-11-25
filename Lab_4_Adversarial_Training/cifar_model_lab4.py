@@ -121,7 +121,7 @@ def main(_):
     print("(min, max) = ({}, {})".format(np.min(cifar.trainData), np.max(cifar.trainData)))
 
     # Build the graph for the deep net
-    with tf.variable_scope('inputs', reuse=tf.AUTO_REUSE):
+    with tf.variable_scope('inputs', reuse=True):
         x = tf.placeholder(tf.float32, shape=[None, cifar.IMG_WIDTH * cifar.IMG_HEIGHT * cifar.IMG_CHANNELS])
         x_image = tf.reshape(x, [-1, cifar.IMG_WIDTH, cifar.IMG_HEIGHT, cifar.IMG_CHANNELS])
         # y_ = tf.placeholder(tf.float32, shape=[None, cifar.CLASS_COUNT])
@@ -129,7 +129,7 @@ def main(_):
 
 
 
-    with tf.variable_scope('model',reuse=tf.AUTO_REUSE):
+    with tf.variable_scope('model',reuse=False):
         logits = deepnn(x_image)
         model = CallableModelWrapper(deepnn, 'logits')
 
@@ -177,7 +177,7 @@ def main(_):
             x1 = tf.placeholder(tf.float32, shape=(None, cifar.IMG_WIDTH, cifar.IMG_HEIGHT, cifar.IMG_CHANNELS))
 
             # Create adversarial examples
-            with tf.variable_scope('model', reuse=tf.AUTO_REUSE):
+            with tf.variable_scope('model', reuse=True):
                 fgsm = FastGradientMethod(model, sess=sess)
                 adv_x = fgsm.generate(x1, eps=fgsm_eps, clip_min=0.0, clip_max=1.0)
                 # preds_adv = model.get_probs(adv_x)
