@@ -182,18 +182,18 @@ def main(_):
                 adv_x = fgsm.generate(x1, eps=fgsm_eps, clip_min=0.0, clip_max=1.0)
                 # preds_adv = model.get_probs(adv_x)
                 _test_images_adv, = batch_eval(sess, [x1], [adv_x], [_test_images], args={'batch_size': 128})
-                _train_images_adv, = batch_eval(sess, [x1], [adv_x], [_train_images], args={'batch_size': 128})
+                # _train_images_adv, = batch_eval(sess, [x1], [adv_x], [_train_images], args={'batch_size': 128})
 
             _train_images_adv = np.reshape(_train_images_adv, [-1, cifar.IMG_WIDTH * cifar.IMG_HEIGHT * cifar.IMG_CHANNELS])
             _test_images_adv = np.reshape(_test_images_adv, [-1, cifar.IMG_WIDTH * cifar.IMG_HEIGHT * cifar.IMG_CHANNELS])
 
-            # Train with normal
-            _, train_summary_str = sess.run([train_step, train_summary],
-                                            feed_dict={x: _train_images_adv, y_: train_labels})
-
             # # Train with adversarial
             # _, train_summary_str = sess.run([train_step, train_summary],
-            #                                 feed_dict={x: train_images, y_: train_labels})
+            #                                 feed_dict={x: _train_images_adv, y_: train_labels})
+
+            # Train with normal
+            _, train_summary_str = sess.run([train_step, train_summary],
+                                            feed_dict={x: train_images, y_: train_labels})
 
 
             # Validation: Monitoring accuracy using validation set
