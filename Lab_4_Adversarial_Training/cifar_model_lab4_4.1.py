@@ -39,11 +39,11 @@ tf.app.flags.DEFINE_integer('flush-frequency', 50,
                             'Number of steps between flushing summary results. (default: %(default)d)')
 tf.app.flags.DEFINE_integer('save-model-frequency', 100,
                             'Number of steps between model saves. (default: %(default)d)')
-tf.app.flags.DEFINE_string('log-dir', '{cwd}/logs2/'.format(cwd=os.getcwd()),
+tf.app.flags.DEFINE_string('log-dir', '{cwd}/logs_4.1/'.format(cwd=os.getcwd()),
                            'Directory where to write event logs and checkpoint. (default: %(default)s)')
 # Optimisation hyperparameters
-# tf.app.flags.DEFINE_integer('max-steps', 10000,
-tf.app.flags.DEFINE_integer('max-steps', 300,
+tf.app.flags.DEFINE_integer('max-steps', 10000,
+# tf.app.flags.DEFINE_integer('max-steps', 300,
                             'Number of mini-batches to train on. (default: %(default)d)')
 tf.app.flags.DEFINE_integer('batch-size', 128, 'Number of examples per mini-batch. (default: %(default)d)')
 tf.app.flags.DEFINE_float('learning-rate', 1e-3, 'Number of examples to run. (default: %(default)d)')
@@ -51,7 +51,7 @@ tf.app.flags.DEFINE_float('learning-rate', 1e-3, 'Number of examples to run. (de
 GENERATION_TYPE = 'fgsm'
 
 fgsm_eps = 0.05
-adversarial_training_enabled = True
+adversarial_training_enabled = False
 run_log_dir = os.path.join(FLAGS.log_dir,
                            ('exp_bs_{bs}_lr_{lr}_' + ('adv_trained' if adversarial_training_enabled else '') + 'eps_{eps}')
                            .format(bs=FLAGS.batch_size, lr=FLAGS.learning_rate, eps=fgsm_eps))
@@ -164,7 +164,7 @@ def main(_):
     with tf.Session(config=tf.ConfigProto(gpu_options=gpu_options)) as sess:
         sess.run(tf.global_variables_initializer())
 
-        adversarial_train_summary = tf.summary.merge([loss_summary, accuracy_summary, learning_rate_summary, adversarial_img_summary])
+        # adversarial_train_summary = tf.summary.merge([loss_summary, accuracy_summary, learning_rate_summary, adversarial_img_summary])
         adversarial_validation_summary = tf.summary.merge([loss_summary, accuracy_summary, adversarial_test_img_summary])
 
         train_writer = tf.summary.FileWriter(run_log_dir + "_train", sess.graph)
@@ -183,7 +183,7 @@ def main(_):
 
 
         # Training and validation
-        for step in range(0, FLAGS.max_steps, 2):
+        for step in range(0, FLAGS.max_steps, 1):
             (train_images, train_labels) = cifar.getTrainBatch()
             (test_images, test_labels) = cifar.getTestBatch()
 
@@ -198,9 +198,9 @@ def main(_):
             _train_images_adv = np.reshape(_train_images_adv, [-1, cifar.IMG_WIDTH * cifar.IMG_HEIGHT * cifar.IMG_CHANNELS])
             _test_images_adv = np.reshape(_test_images_adv, [-1, cifar.IMG_WIDTH * cifar.IMG_HEIGHT * cifar.IMG_CHANNELS])
 
-            # Train with adversarial
-            _, adversarial_train_summary_str = sess.run([train_step, adversarial_train_summary],
-                                            feed_dict={x: _train_images_adv, y_: train_labels})
+            # # Train with adversarial
+            # _, adversarial_train_summary_str = sess.run([train_step, adversarial_train_summary],
+            #                                 feed_dict={x: _train_images_adv, y_: train_labels})
 
             # Train with normal
             _, train_summary_str = sess.run([train_step, train_summary],
@@ -210,7 +210,7 @@ def main(_):
             # Validation: Monitoring accuracy using validation set
             if step % FLAGS.log_frequency == 0:
                 train_writer.add_summary(train_summary_str, step)
-                adversarial_train_writer.add_summary(adversarial_train_summary_str, step)
+                # adversarial_train_writer.add_summary(adversarial_train_summary_str, step)
 
                 # Test with adversarial
                 validation_adversarial_accuracy, validation_adversarial_summary_str = sess.run([accuracy, adversarial_validation_summary],
@@ -232,7 +232,7 @@ def main(_):
 
             if step % FLAGS.flush_frequency == 0:
                 train_writer.flush()
-                adversarial_train_writer.flush()
+                # adversarial_train_writer.flush()
                 validation_writer.flush()
                 adversarial_validation_writer.flush()
 
