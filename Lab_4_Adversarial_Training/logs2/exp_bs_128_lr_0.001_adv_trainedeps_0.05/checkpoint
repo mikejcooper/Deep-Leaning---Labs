@@ -1,0 +1,2 @@
+model_checkpoint_path: "/Users/mikecooper/Google Drive/Macbook Pro/Work/University/4th Year/Deep Learning/Lab_4_Adversarial_Training/logs2/exp_bs_128_lr_0.001_adv_trainedeps_0.05/model.ckpt-0"
+all_model_checkpoint_paths: "/Users/mikecooper/Google Drive/Macbook Pro/Work/University/4th Year/Deep Learning/Lab_4_Adversarial_Training/logs2/exp_bs_128_lr_0.001_adv_trainedeps_0.05/model.ckpt-0"

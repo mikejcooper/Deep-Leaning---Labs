@@ -43,7 +43,7 @@ tf.app.flags.DEFINE_string('log-dir', '{cwd}/logs2/'.format(cwd=os.getcwd()),
                            'Directory where to write event logs and checkpoint. (default: %(default)s)')
 # Optimisation hyperparameters
 # tf.app.flags.DEFINE_integer('max-steps', 10000,
-tf.app.flags.DEFINE_integer('max-steps', 300,
+tf.app.flags.DEFINE_integer('max-steps', 10,
                             'Number of mini-batches to train on. (default: %(default)d)')
 tf.app.flags.DEFINE_integer('batch-size', 128, 'Number of examples per mini-batch. (default: %(default)d)')
 tf.app.flags.DEFINE_float('learning-rate', 1e-3, 'Number of examples to run. (default: %(default)d)')
@@ -187,16 +187,14 @@ def main(_):
             (train_images, train_labels) = cifar.getTrainBatch()
             (test_images, test_labels) = cifar.getTestBatch()
 
-            _train_images = np.reshape(train_images, [-1, cifar.IMG_WIDTH, cifar.IMG_HEIGHT, cifar.IMG_CHANNELS])
-            _test_images = np.reshape(test_images, [-1, cifar.IMG_WIDTH, cifar.IMG_HEIGHT, cifar.IMG_CHANNELS])
-
             # Create adversarial examples
             with tf.variable_scope('model', reuse=True):
+                _train_images = np.reshape(train_images, [-1, cifar.IMG_WIDTH, cifar.IMG_HEIGHT, cifar.IMG_CHANNELS])
+                _test_images = np.reshape(test_images, [-1, cifar.IMG_WIDTH, cifar.IMG_HEIGHT, cifar.IMG_CHANNELS])
                 _test_images_adv = sess.run(adv_x, feed_dict={x1: _test_images})
                 _train_images_adv = sess.run(adv_x, feed_dict={x1: _train_images})
-
-            _train_images_adv = np.reshape(_train_images_adv, [-1, cifar.IMG_WIDTH * cifar.IMG_HEIGHT * cifar.IMG_CHANNELS])
-            _test_images_adv = np.reshape(_test_images_adv, [-1, cifar.IMG_WIDTH * cifar.IMG_HEIGHT * cifar.IMG_CHANNELS])
+                _train_images_adv = np.reshape(_train_images_adv, [-1, cifar.IMG_WIDTH * cifar.IMG_HEIGHT * cifar.IMG_CHANNELS])
+                _test_images_adv = np.reshape(_test_images_adv, [-1, cifar.IMG_WIDTH * cifar.IMG_HEIGHT * cifar.IMG_CHANNELS])
 
             # Train with adversarial
             _, adversarial_train_summary_str = sess.run([train_step, adversarial_train_summary],
@@ -246,7 +244,14 @@ def main(_):
         while evaluated_images != cifar.nTestSamples:
             # Don't loop back when we reach the end of the test set
             (test_images, test_labels) = cifar.getTestBatch(allowSmallerBatches=True)
-            test_accuracy_temp, _ = sess.run([accuracy, test_summary], feed_dict={x: test_images, y_: test_labels})
+            # Create adversarial examples
+            with tf.variable_scope('model', reuse=True):
+                _test_images = np.reshape(test_images, [-1, cifar.IMG_WIDTH, cifar.IMG_HEIGHT, cifar.IMG_CHANNELS])
+                _test_images_adv = sess.run(adv_x, feed_dict={x1: _test_images})
+                _test_images_adv = np.reshape(_test_images_adv, [-1, cifar.IMG_WIDTH * cifar.IMG_HEIGHT * cifar.IMG_CHANNELS])
+
+            test_accuracy = test_accuracy + sess.run([accuracy], feed_dict={x: test_images, y_: test_labels})[0]
+            adversarial_test_accuracy = adversarial_test_accuracy + sess.run([accuracy], feed_dict={x: _test_images_adv, y_: test_labels})[0]
 
             batch_count += 1
             evaluated_images += test_labels.shape[0]

@@ -246,7 +246,16 @@ def main(_):
         while evaluated_images != cifar.nTestSamples:
             # Don't loop back when we reach the end of the test set
             (test_images, test_labels) = cifar.getTestBatch(allowSmallerBatches=True)
-            test_accuracy_temp, _ = sess.run([accuracy, test_summary], feed_dict={x: test_images, y_: test_labels})
+            # Create adversarial examples
+            with tf.variable_scope('model', reuse=True):
+                _test_images = np.reshape(test_images, [-1, cifar.IMG_WIDTH, cifar.IMG_HEIGHT, cifar.IMG_CHANNELS])
+                _test_images_adv = sess.run(adv_x, feed_dict={x1: _test_images})
+                _test_images_adv = np.reshape(_test_images_adv,
+                                              [-1, cifar.IMG_WIDTH * cifar.IMG_HEIGHT * cifar.IMG_CHANNELS])
+
+            test_accuracy = test_accuracy + sess.run([accuracy], feed_dict={x: test_images, y_: test_labels})[0]
+            adversarial_test_accuracy = adversarial_test_accuracy + \
+                                        sess.run([accuracy], feed_dict={x: _test_images_adv, y_: test_labels})[0]
 
             batch_count += 1
             evaluated_images += test_labels.shape[0]
@@ -262,6 +271,5 @@ def main(_):
         adversarial_train_writer.close()
         adversarial_validation_writer.close()
 
-
-if __name__ == '__main__':
-    tf.app.run(main=main)
+    if __name__ == '__main__':
+        tf.app.run(main=main)
