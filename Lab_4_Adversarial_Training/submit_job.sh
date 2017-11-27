@@ -12,5 +12,9 @@
 
 module add libs/tensorflow/1.2
 
-srun python cifar_model_lab4.py
+# module load git
+# pip2 install --user -e git+http://github.com/tensorflow/cleverhans.git@80e57#egg=cleverhans
+
+# srun python cifar_model_lab4_4.1.py
+srun -p gpu --gres=gpu:1 -A comsm0018 -t 0-02:00 --mem=4G --pty python cifar_model_lab4_4.1.py
 wait
