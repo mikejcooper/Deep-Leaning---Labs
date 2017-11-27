@@ -271,5 +271,5 @@ def main(_):
         adversarial_train_writer.close()
         adversarial_validation_writer.close()
 
-    if __name__ == '__main__':
-        tf.app.run(main=main)
+if __name__ == '__main__':
+    tf.app.run(main=main)
